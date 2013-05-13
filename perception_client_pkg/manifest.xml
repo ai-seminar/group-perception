@@ -1,0 +1,16 @@
+<package>
+  <description brief="perception_client_pkg">
+		This package provides the entry point for the perception_* packages. It will therefore offer the possibility to start the necessary ros nodes to work with the perception_* packages.
+	The package will also be used to get the latest results from the core of the package (e.g.  perception_pkg).</description>
+  <author>pmania</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+	<url>https://github.com/ai-seminar/group-perception/wiki/perception_client_pkg</url>
+  <depend package="std_msgs"/>
+  <depend package="roscpp"/>
+  <depend package="perception_group_msgs"/>
+  <depend package="perception_pkg"/>
+
+</package>
+
+
