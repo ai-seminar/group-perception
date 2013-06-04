@@ -17,7 +17,7 @@ main (int argc, char** argv)
   pcl::PCDReader reader;
 
   // reader.read ("table_scene_mug_stereo_textured.pcd", *cloud);
-  reader.read ("cloud_in.pcd", *cloud);
+  reader.read (argv[1], *cloud);
   // Build a filter to remove spurious NaNs
   pcl::PassThrough<pcl::PointXYZ> pass;
   pass.setInputCloud (cloud);
