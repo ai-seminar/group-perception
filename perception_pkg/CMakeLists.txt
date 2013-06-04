@@ -36,6 +36,9 @@ rosbuild_add_executable(perception_server src/perception_server.cpp)
 rosbuild_add_executable(pcd_processor src/pcd_processor.cpp)
 target_link_libraries(pcd_processor libvtkCommon.so libvtkFiltering.so libvtkRendering.so)
 
+rosbuild_add_executable(pcd_view src/pcd_view.cpp)
+target_link_libraries(pcd_view libvtkCommon.so libvtkFiltering.so libvtkRendering.so)
+
 rosbuild_add_executable(subscribe src/subscribe.cpp)
 rosbuild_link_boost(subscribe system)
 target_link_libraries(subscribe ${PCL_LIBRARIES})
