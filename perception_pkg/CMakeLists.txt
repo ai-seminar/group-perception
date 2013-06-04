@@ -39,6 +39,9 @@ target_link_libraries(pcd_processor libvtkCommon.so libvtkFiltering.so libvtkRen
 rosbuild_add_executable(pcd_view src/pcd_view.cpp)
 target_link_libraries(pcd_view libvtkCommon.so libvtkFiltering.so libvtkRendering.so)
 
+rosbuild_add_executable(concave_hull src/concave_hull.cpp)
+target_link_libraries(concave_hull libvtkCommon.so libvtkFiltering.so libvtkRendering.so)
+
 rosbuild_add_executable(subscribe src/subscribe.cpp)
 rosbuild_link_boost(subscribe system)
 target_link_libraries(subscribe ${PCL_LIBRARIES})
