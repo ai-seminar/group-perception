@@ -1,0 +1,11 @@
+<launch>
+
+  <group ns="perception_grp">
+    <node pkg="perception_pkg" name="perception" type="perception_server"/>
+    <node pkg="perception_client_pkg" name="perception_client" type="perception_client"/>
+  </group>
+
+  <node pkg="perception_pkg" name="perception" type="perception_server"></node>
+  <node pkg="perception_client_pkg" name="perception_client" type="perception_client" args="5 10"></node>
+
+</launch>
