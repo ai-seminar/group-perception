@@ -6,7 +6,8 @@
 #include <pcl/filters/passthrough.h>
 #include <pcl/filters/project_inliers.h>
 #include <pcl/segmentation/sac_segmentation.h>
-#include <pcl/surface/concave_hull.h>
+// #include <pcl/surface/concave_hull.h>
+#include <pcl/surface/convex_hull.h>
 
 int
 main (int argc, char** argv)
@@ -53,14 +54,14 @@ main (int argc, char** argv)
   std::cerr << "PointCloud after projection has: "
             << cloud_projected->points.size () << " data points." << std::endl;
 
-  // Create a Concave Hull representation of the projected inliers
+  // Create a Convex Hull representation of the projected inliers
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_hull (new pcl::PointCloud<pcl::PointXYZ>);
-  pcl::ConcaveHull<pcl::PointXYZ> chull;
+  pcl::ConvexHull<pcl::PointXYZ> chull;
   chull.setInputCloud (cloud_projected);
-  chull.setAlpha (0.1);
+  // chull.setAlpha (0.1);
   chull.reconstruct (*cloud_hull);
 
-  std::cerr << "Concave hull has: " << cloud_hull->points.size ()
+  std::cerr << "Convex hull has: " << cloud_hull->points.size ()
             << " data points." << std::endl;
 
   pcl::PCDWriter writer;

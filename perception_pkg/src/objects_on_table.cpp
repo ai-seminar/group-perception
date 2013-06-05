@@ -13,7 +13,7 @@
 #include <pcl/ModelCoefficients.h>
 
 #include <pcl/filters/extract_indices.h>
-
+#include <pcl/filters/project_inliers.h>
 #include <pcl/surface/convex_hull.h>
 
 int main(int argc, char **argv)
@@ -23,7 +23,7 @@ int main(int argc, char **argv)
 	if(argc<2)
 	{
 	        std::cerr<<"Please specify a pcd file to use"<<std::endl;
-	        std::cerr<<"Run program like this: pcd_processor [filename.pcd]"<<std::endl;
+	        std::cerr<<"Run program like this: objects_on_table [filename.pcd]"<<std::endl;
 		exit(0);
 	}
 	//objects for reading/writing pcd files
@@ -38,6 +38,7 @@ int main(int argc, char **argv)
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_plane (new pcl::PointCloud<pcl::PointXYZRGB>());
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_clusters (new pcl::PointCloud<pcl::PointXYZRGB>());
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_clusters (new pcl::PointCloud<pcl::PointXYZRGB>());
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_projected (new pcl::PointCloud<pcl::PointXYZRGB>());
 	pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
 
 	//read in point cloud from pcd file
@@ -56,19 +57,19 @@ int main(int argc, char **argv)
 	std::cerr<<"Writing output cloud nanless.pcd"<<std::endl;
 	writer.write("nanles.pcd",*cloud_nanles);
 
-	//estimate normals
-	pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
-	pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB> ());
-	ne.setInputCloud(cloud_in);
-	ne.setSearchMethod (tree);
-	ne.setRadiusSearch (0.03);
-	ne.compute(*cloud_normals);
+	// //estimate normals
+	// pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
+	// pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB> ());
+	// ne.setInputCloud(cloud_in);
+	// ne.setSearchMethod (tree);
+	// ne.setRadiusSearch (0.03);
+	// ne.compute(*cloud_normals);
 
-	//create cloud for visualization
-	pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_normal_color (new pcl::PointCloud<pcl::PointXYZRGBNormal>);
-	pcl::concatenateFields(*cloud_in, *cloud_normals, *cloud_normal_color);
-	std::cerr<<"Writing output cloud normals.pcd"<<std::endl;
-	writer.write("normals.pcd",*cloud_normal_color);
+	// //create cloud for visualization
+	// pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_normal_color (new pcl::PointCloud<pcl::PointXYZRGBNormal>);
+	// pcl::concatenateFields(*cloud_in, *cloud_normals, *cloud_normal_color);
+	// std::cerr<<"Writing output cloud normals.pcd"<<std::endl;
+	// writer.write("normals.pcd",*cloud_normal_color);
 
 	//filtering cloud on z axis
 	pcl::PassThrough<pcl::PointXYZRGB> pass;
@@ -117,11 +118,34 @@ int main(int argc, char **argv)
 	std::cerr<<"Writing output cloud plane.pcd"<<std::endl;
 	writer.write("plane.pcd",*cloud_plane);
 
+	// Remove the plane from the rest of the point cloud
 	extract.setNegative(true);
 	extract.filter(*cloud_clusters);
 
 	std::cerr<<"Writing output cloud clusters.pcd"<<std::endl;
 	writer.write("clusters.pcd",*cloud_clusters);
+
+	// Create a ConvexHull for the table plane
+  // Project the model inliers
+  pcl::ProjectInliers<pcl::PointXYZRGB> proj;
+  proj.setModelType (pcl::SACMODEL_PLANE);
+  proj.setIndices (inliers);
+  proj.setInputCloud (cloud_filtered);
+  proj.setModelCoefficients (coefficients);
+  proj.filter (*cloud_projected);
+  std::cerr << "PointCloud after projection has: "
+            << cloud_projected->points.size () << " data points." << std::endl;
+  // Create a Concave Hull representation of the projected inliers
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_hull (new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl::ConvexHull<pcl::PointXYZRGB> chull;
+  chull.setInputCloud (cloud_projected);
+  // chull.setAlpha (0.1);
+  chull.reconstruct (*cloud_hull);
+	std::cerr<<"Writing plane hull cloud to plane_hull.pcd"<<std::endl;
+	writer.write("plane_hull.pcd",*cloud_hull);
+
+  std::cerr << "Convex hull has: " << cloud_hull->points.size ()
+            << " data points." << std::endl;
 
 	// Use ExtractPolygonalPrism to get all the point clouds above the plane in a given range
 	
@@ -142,7 +166,7 @@ int main(int argc, char **argv)
 		prism.segment (*object_indices);
 
 		// Create the filtering object
-    pcl::ExtractIndices<pcl::PointXYZ> extractObjects;
+    pcl::ExtractIndices<pcl::PointXYZRGB> extractObjects;
 		// Extract the inliers of the prism
     extract.setInputCloud (cloud_clusters);
     extract.setIndices (object_indices);
