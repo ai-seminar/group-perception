@@ -1,3 +1,10 @@
+/**
+ * objects_on_table.cpp
+ *
+ * Process a complete point cloud of the given scene
+ * and writes every point above the table
+ * into the object_clusters.pcd file.
+ */
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl/features/normal_3d.h>

@@ -1,3 +1,11 @@
+/**
+ * cluster_extraction.cpp
+ *
+ * You can use this programm to separate point clusters from each other with euclidean clustering.
+ * Normally, you will call this on the resulting pcd file from objects_on_table.cpp
+ * to work on the objects above the table.
+ */
+
 #include <pcl/ModelCoefficients.h>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
@@ -9,7 +17,7 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/segmentation/extract_clusters.h>
-
+#include <pcl/surface/convex_hull.h>
 
 int 
 main (int argc, char** argv)
@@ -83,7 +91,8 @@ main (int argc, char** argv)
   pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
   ec.setClusterTolerance (0.03); // 2cm
   ec.setMinClusterSize (100);
-  ec.setMaxClusterSize (25000);
+  // ec.setMaxClusterSize (25000);
+  ec.setMaxClusterSize (4000); // avoid the stuff in the back
   ec.setSearchMethod (tree);
   ec.setInputCloud (cloud_filtered);
   ec.extract (cluster_indices);
@@ -102,6 +111,22 @@ main (int argc, char** argv)
     std::stringstream ss;
     ss << "object_cluster_" << j << ".pcd";
     writer.write<pcl::PointXYZ> (ss.str (), *cloud_cluster, false); //*
+
+		// Calculate the volume of each cluster
+		// Create a convex hull around the cluster and calculate the total volume
+		pcl::PointCloud<pcl::PointXYZ>::Ptr hull_points (new pcl::PointCloud<pcl::PointXYZ> ());
+		pcl::ConvexHull<pcl::PointXYZ> hull;
+		hull.setInputCloud (cloud_cluster);
+		hull.setDimension(3);
+		hull.setComputeAreaVolume(true); // This creates alot of output, but it's necessary for getTotalVolume() ....
+		hull.reconstruct (*hull_points);
+		std::cout << "Volume of Cluster " << j << " is: " << hull.getTotalVolume() << std::endl;
+		std::cerr << "Convex hull has: " << hull_points->points.size ()
+            << " data points." << std::endl;
+    std::stringstream sh;
+    sh << "object_cluster_" << j << "_hull.pcd";
+		writer.write(sh.str (),*hull_points);
+
     j++;
   }
 
