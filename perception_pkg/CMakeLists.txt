@@ -45,6 +45,10 @@ target_link_libraries(concave_hull libvtkCommon.so libvtkFiltering.so libvtkRend
 rosbuild_add_executable(cluster_extraction src/cluster_extraction.cpp)
 target_link_libraries(cluster_extraction libvtkCommon.so libvtkFiltering.so libvtkRendering.so)
 
+rosbuild_add_executable(objects_on_table src/objects_on_table.cpp)
+target_link_libraries(objects_on_table libvtkCommon.so libvtkFiltering.so libvtkRendering.so)
+target_link_libraries(objects_on_table ${PCL_LIBRARIES})
+
 rosbuild_add_executable(subscribe src/subscribe.cpp)
 rosbuild_link_boost(subscribe system)
 target_link_libraries(subscribe ${PCL_LIBRARIES})
