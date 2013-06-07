@@ -13,6 +13,7 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/kdtree/kdtree.h>
+#include <pcl/visualization/cloud_viewer.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
@@ -123,6 +124,23 @@ main (int argc, char** argv)
 		std::cout << "Volume of Cluster " << j << " is: " << hull.getTotalVolume() << std::endl;
 		std::cerr << "Convex hull has: " << hull_points->points.size ()
             << " data points." << std::endl;
+
+		// Centroid calulcation
+		Eigen::Vector4f centroid;
+		pcl::compute3DCentroid (*hull_points, centroid);	
+		std::cout << "The centroid vector is: " << centroid[0] << ","<<centroid[1]<<"," << centroid[2] <<","<< centroid[3] <<std::endl;
+
+		// pcl::visualization::CloudViewer viewer("Simple Cloud Viewer");
+  	// viewer.showCloud(cloud_cluster);
+		// vtkSmartPointer<vtkDataSet> data = pcl::visualization::createSphere (centroid, 20);
+		// while(!viewer.wasStopped ()){}
+		pcl::visualization::PCLVisualizer viewer("Cluster visualization"); 
+		viewer.addCoordinateSystem(0.025); 
+		viewer.addPointCloud(cloud_cluster); 
+		// viewer.addSphere(pcl::PointXYZ(centroid[0],centroid[1],centroid[2]), 0.1, "sphere1"); 
+		viewer.addSphere(pcl::PointXYZ(centroid[0],centroid[1],centroid[2]), 0.01, 255,0,0,"centroid"); 
+		viewer.spin(); 
+
     std::stringstream sh;
     sh << "object_cluster_" << j << "_hull.pcd";
 		writer.write(sh.str (),*hull_points);
