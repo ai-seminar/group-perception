@@ -33,7 +33,8 @@ int main(int argc, char **argv)
   if (clusterClient.call(clusterSrv))
   {
     // ROS_INFO("Sum: %ld", (long int)srv.response.sum);
-		ROS_INFO("Service call successful");
+		ROS_INFO("Cluster Service call successful");
+    ROS_INFO("List size: %ld", (long int)clusterSrv.response.perceivedObjs.size() );
   }
   else
   {
