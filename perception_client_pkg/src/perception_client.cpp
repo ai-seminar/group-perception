@@ -1,5 +1,6 @@
 #include "ros/ros.h"
 #include "perception_group_msgs/AddTwoInts.h"
+#include "perception_group_msgs/GetClusters.h"
 #include <cstdlib>
 
 int main(int argc, char **argv)
@@ -19,6 +20,20 @@ int main(int argc, char **argv)
   if (client.call(srv))
   {
     ROS_INFO("Sum: %ld", (long int)srv.response.sum);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service add_two_ints");
+    return 1;
+  }
+
+	ros::ServiceClient clusterClient = n.serviceClient<perception_group_msgs::GetClusters>("GetClusters");
+  perception_group_msgs::GetClusters clusterSrv;
+  clusterSrv.request.s = "foobar";
+  if (clusterClient.call(clusterSrv))
+  {
+    // ROS_INFO("Sum: %ld", (long int)srv.response.sum);
+		ROS_INFO("Service call successful");
   }
   else
   {
