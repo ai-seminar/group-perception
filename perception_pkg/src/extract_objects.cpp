@@ -5,6 +5,10 @@
  * and writes every point above the table
  * into the object_clusters.pcd file.
  */
+#include "ros/ros.h"
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
+
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl/features/normal_3d.h>
@@ -37,21 +41,9 @@
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/surface/convex_hull.h>
 
-int main(int argc, char **argv)
+void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
 {
-
-  //path to pcd file needs to be given as a parameter
-  if(argc<2)
-  {
-          std::cerr<<"Please specify a pcd file to use"<<std::endl;
-          std::cerr<<"Run program like this: objects_on_table [filename.pcd]"<<std::endl;
-    exit(0);
-  }
-  //objects for reading/writing pcd files
-  pcl::PCDReader reader;
-
   //point cloud objects
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in (new pcl::PointCloud<pcl::PointXYZRGB>());
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_nanles (new pcl::PointCloud<pcl::PointXYZRGB>());
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZRGB>());
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_downsampled (new pcl::PointCloud<pcl::PointXYZRGB>());
@@ -61,8 +53,6 @@ int main(int argc, char **argv)
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_projected (new pcl::PointCloud<pcl::PointXYZRGB>());
   pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
 
-  //read in point cloud from pcd file
-  reader.read(argv[1],*cloud_in);
   std::cerr<<"Input cloud has " <<cloud_in->points.size()<<" point! "<<std::endl;
 
   //create visualization opbject
@@ -226,5 +216,25 @@ int main(int argc, char **argv)
 
     j++;
   }
+}
+
+void cb_(const sensor_msgs::PointCloud2ConstPtr& inputCloud)
+{
+
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in (new pcl::PointCloud<pcl::PointXYZRGB>());
+  pcl::fromROSMsg(*inputCloud,*cloud_in);
+
+  process_cloud(cloud_in);
+
+  ROS_INFO("Wrote a new point cloud: size = %d",cloud_in->points.size());
+  //ros::shutdown();
+}
+
+int main(int argc, char **argv)
+{
+  ros::init(argc, argv, "listener");
+  ros::NodeHandle n;
+  ros::Subscriber sub = n.subscribe("/camera/depth_registered/points", 10, cb_);
+  ros::spin();
   return 0;
 }
