@@ -49,7 +49,6 @@ int main(int argc, char **argv)
   }
   //objects for reading/writing pcd files
   pcl::PCDReader reader;
-  pcl::PCDWriter writer;
 
   //point cloud objects
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in (new pcl::PointCloud<pcl::PointXYZRGB>());
@@ -75,22 +74,6 @@ int main(int argc, char **argv)
   std::vector<int> nans;
   pcl::removeNaNFromPointCloud(*cloud_in,*cloud_nanles,nans);
   std::cerr<<"Size of point cloud after removal of nans "<<cloud_nanles->points.size()<<"!"<<std::endl;
-  std::cerr<<"Writing output cloud nanless.pcd"<<std::endl;
-  writer.write("nanles.pcd",*cloud_nanles);
-
-  // //estimate normals
-  // pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> ne;
-  // pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB> ());
-  // ne.setInputCloud(cloud_in);
-  // ne.setSearchMethod (tree);
-  // ne.setRadiusSearch (0.03);
-  // ne.compute(*cloud_normals);
-
-  // //create cloud for visualization
-  // pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_normal_color (new pcl::PointCloud<pcl::PointXYZRGBNormal>);
-  // pcl::concatenateFields(*cloud_in, *cloud_normals, *cloud_normal_color);
-  // std::cerr<<"Writing output cloud normals.pcd"<<std::endl;
-  // writer.write("normals.pcd",*cloud_normal_color);
 
   //filtering cloud on z axis
   pcl::PassThrough<pcl::PointXYZRGB> pass;
@@ -100,8 +83,6 @@ int main(int argc, char **argv)
   //pass.setFilterLimitsNegative(true);
   pass.filter(*cloud_filtered);
   std::cerr<<"Point Cloud has "<<cloud_filtered->points.size()<<" after filtering"<<std::endl;
-  std::cerr<<"Writing output cloud filtered.pcd"<<std::endl;
-  writer.write("filtered.pcd",*cloud_filtered);
 
   //voxelizing cloud
   pcl::VoxelGrid <pcl::PointXYZRGB> vg;
@@ -109,8 +90,6 @@ int main(int argc, char **argv)
   vg.setLeafSize(0.01f,0.01f,0.01f);
   vg.filter(*cloud_downsampled);
   std::cerr<<"Point Cloud has "<<cloud_downsampled->points.size()<<" after downsampeling"<<std::endl;
-  std::cerr<<"Writing output cloud filtered.pcd"<<std::endl;
-  writer.write("downsampled.pcd",*cloud_downsampled);
 
   //fitting a plane to the filtered cloud
   pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients ());
@@ -136,15 +115,10 @@ int main(int argc, char **argv)
   extract.setIndices(inliers);
   std::cerr<<"Extracting plane"<<std::endl;
   extract.filter(*cloud_plane);
-  std::cerr<<"Writing output cloud plane.pcd"<<std::endl;
-  writer.write("plane.pcd",*cloud_plane);
 
   // Remove the plane from the rest of the point cloud
   extract.setNegative(true);
   extract.filter(*cloud_clusters);
-
-  std::cerr<<"Writing output cloud clusters.pcd"<<std::endl;
-  writer.write("clusters.pcd",*cloud_clusters);
 
   // Create a ConvexHull for the table plane
   // Project the model inliers
@@ -162,8 +136,6 @@ int main(int argc, char **argv)
   chull.setInputCloud (cloud_projected);
   // chull.setAlpha (0.1);
   chull.reconstruct (*cloud_hull);
-  std::cerr<<"Writing plane hull cloud to plane_hull.pcd"<<std::endl;
-  writer.write("plane_hull.pcd",*cloud_hull);
 
   std::cerr << "Convex hull has: " << cloud_hull->points.size ()
             << " data points." << std::endl;
@@ -193,24 +165,18 @@ int main(int argc, char **argv)
     extract.setIndices (object_indices);
     extract.setNegative (false);
     extract.filter (*object_clusters);
-    std::cerr<<"Writing output cloud object_clusters.pcd"<<std::endl;
-    writer.write("object_clusters.pcd",*object_clusters);
   }
   else
    PCL_ERROR ("The input cloud does not represent a planar surface.\n");
 
 
   // cluster extraction
-
-  // Read in the cloud data
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>), cloud_f (new pcl::PointCloud<pcl::PointXYZRGB>);
-  reader.read ("object_clusters.pcd", *cloud);
-  std::cout << "PointCloud before filtering has: " << cloud->points.size () << " data points." << std::endl; //*
+  std::cout << "PointCloud before filtering has: " << object_clusters->points.size () << " data points." << std::endl; //*
 
   // Create the filtering object: downsample the dataset using a leaf size of 1cm
   pcl::VoxelGrid<pcl::PointXYZRGB> vg_clusters;
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cluster_cloud_filtered (new pcl::PointCloud<pcl::PointXYZRGB>);
-  vg_clusters.setInputCloud (cloud);
+  vg_clusters.setInputCloud (object_clusters);
   vg_clusters.setLeafSize (0.01f, 0.01f, 0.01f);
   vg_clusters.filter (*cluster_cloud_filtered);
   std::cout << "PointCloud after filtering has: " << cluster_cloud_filtered->points.size ()  << " data points." << std::endl; //*
@@ -240,9 +206,6 @@ int main(int argc, char **argv)
     cloud_cluster->is_dense = true;
 
     std::cout << "PointCloud representing the Cluster" << j << ": " << cloud_cluster->points.size () << " data points." << std::endl;
-    std::stringstream ss;
-    ss << "object_cluster_" << j << ".pcd";
-    writer.write<pcl::PointXYZRGB> (ss.str (), *cloud_cluster, false); //*
 
     // Calculate the volume of each cluster
     // Create a convex hull around the cluster and calculate the total volume
@@ -261,23 +224,7 @@ int main(int argc, char **argv)
     pcl::compute3DCentroid (*hull_points, centroid);  
     std::cout << "The centroid vector is: " << centroid[0] << ","<<centroid[1]<<"," << centroid[2] <<","<< centroid[3] <<std::endl;
 
-    // pcl::visualization::CloudViewer viewer("Simple Cloud Viewer");
-    // viewer.showCloud(cloud_cluster);
-    // vtkSmartPointer<vtkDataSet> data = pcl::visualization::createSphere (centroid, 20);
-    // while(!viewer.wasStopped ()){}
-    /*pcl::visualization::PCLVisualizer viewer("Cluster visualization"); 
-    viewer.addCoordinateSystem(0.025); 
-    viewer.addPointCloud(cloud_cluster); 
-    // viewer.addSphere(pcl::PointXYZ(centroid[0],centroid[1],centroid[2]), 0.1, "sphere1"); 
-    viewer.addSphere(pcl::PointXYZ(centroid[0],centroid[1],centroid[2]), 0.01, 255,0,0,"centroid"); 
-    viewer.spin(); */
-
-    std::stringstream sh;
-    sh << "object_cluster_" << j << "_hull.pcd";
-    writer.write(sh.str (),*hull_points);
-
     j++;
   }
-
   return 0;
 }
