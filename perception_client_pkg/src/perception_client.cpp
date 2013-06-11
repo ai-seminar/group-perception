@@ -35,6 +35,10 @@ int main(int argc, char **argv)
     // ROS_INFO("Sum: %ld", (long int)srv.response.sum);
 		ROS_INFO("Cluster Service call successful");
     ROS_INFO("List size: %ld", (long int)clusterSrv.response.perceivedObjs.size() );
+    // ROS_INFO("List size: %ld", (long int)clusterSrv.response.perceivedObjs.size() );
+		for(int i=0; i < clusterSrv.response.perceivedObjs.size(); i++ ) {
+			ROS_INFO("ID of perceived object is: %d" ,clusterSrv.response.perceivedObjs[i].c_id);
+		}
   }
   else
   {

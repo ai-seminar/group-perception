@@ -2,6 +2,7 @@
 #include "perception_group_msgs/AddTwoInts.h"
 #include "perception_group_msgs/GetClusters.h"
 #include "perception_group_msgs/PerceivedObject.h"
+#include "geometry_msgs/Point.h"
 
 bool add(perception_group_msgs::AddTwoInts::Request  &req,
          perception_group_msgs::AddTwoInts::Response &res)
@@ -19,6 +20,18 @@ bool getClusters(perception_group_msgs::GetClusters::Request  &req,
 	ROS_INFO(req.s.c_str());
 	std::vector<perception_group_msgs::PerceivedObject> perceivedObjects;
 	perception_group_msgs::PerceivedObject objectOne;
+	objectOne.c_id=23;
+	geometry_msgs::Point centroid;
+	centroid.x=23;
+	centroid.y=5;
+	objectOne.c_centroid = centroid;
+	objectOne.c_volume = 0.23f;
+
+	// geometry_msgs/Point c_centroid
+	// float32 c_volume
+
+
+
 	perceivedObjects.push_back(objectOne);
 	res.perceivedObjs = perceivedObjects;
 
