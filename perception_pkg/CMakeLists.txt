@@ -49,6 +49,11 @@ rosbuild_add_executable(objects_on_table src/objects_on_table.cpp)
 target_link_libraries(objects_on_table libvtkCommon.so libvtkFiltering.so libvtkRendering.so)
 target_link_libraries(objects_on_table ${PCL_LIBRARIES})
 
+rosbuild_add_executable(extract_objects src/extract_objects.cpp)
+target_link_libraries(extract_objects libvtkCommon.so libvtkFiltering.so libvtkRendering.so)
+target_link_libraries(extract_objects ${PCL_LIBRARIES})
+
+
 rosbuild_add_executable(subscribe src/subscribe.cpp)
 rosbuild_link_boost(subscribe system)
 target_link_libraries(subscribe ${PCL_LIBRARIES})
