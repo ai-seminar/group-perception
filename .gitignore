@@ -22,6 +22,8 @@ srv_gen/
 # bag files
 *.bag
 
+# intermediate files
+*.pcd
 
 # emacs stuff
 *~
