@@ -1,9 +1,8 @@
 /**
- * objects_on_table.cpp
+ * extract_objects.cpp
  *
- * Process a complete point cloud of the given scene
- * and writes every point above the table
- * into the object_clusters.pcd file.
+ * Process a complete point cloud from ROS
+ * and calculate the volume and centroid of the objects.
  */
 #include "ros/ros.h"
 #include <pcl/io/pcd_io.h>
@@ -41,6 +40,14 @@
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/surface/convex_hull.h>
 
+#include "perception_group_msgs/PerceivedObject.h"
+#include "geometry_msgs/Point.h"
+#include "perception_group_msgs/GetClusters.h"
+
+
+static boost::signals2::mutex mutex;
+std::vector<perception_group_msgs::PerceivedObject> perceivedObjects;
+
 void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
 {
   //point cloud objects
@@ -53,7 +60,7 @@ void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_projected (new pcl::PointCloud<pcl::PointXYZRGB>());
   pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
 
-  std::cerr<<"Input cloud has " <<cloud_in->points.size()<<" point! "<<std::endl;
+  // std::cerr<<"Input cloud has " <<cloud_in->points.size()<<" point! "<<std::endl;
 
   //create visualization opbject
   // pcl::visualization::CloudViewer viewer("Simple Cloud Viewer");
@@ -63,7 +70,7 @@ void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
   //removing nans from point clouds
   std::vector<int> nans;
   pcl::removeNaNFromPointCloud(*cloud_in,*cloud_nanles,nans);
-  std::cerr<<"Size of point cloud after removal of nans "<<cloud_nanles->points.size()<<"!"<<std::endl;
+  // std::cerr<<"Size of point cloud after removal of nans "<<cloud_nanles->points.size()<<"!"<<std::endl;
 
   //filtering cloud on z axis
   pcl::PassThrough<pcl::PointXYZRGB> pass;
@@ -72,14 +79,14 @@ void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
   pass.setFilterLimits(0.0, 1.5);
   //pass.setFilterLimitsNegative(true);
   pass.filter(*cloud_filtered);
-  std::cerr<<"Point Cloud has "<<cloud_filtered->points.size()<<" after filtering"<<std::endl;
+  // std::cerr<<"Point Cloud has "<<cloud_filtered->points.size()<<" after filtering"<<std::endl;
 
   //voxelizing cloud
   pcl::VoxelGrid <pcl::PointXYZRGB> vg;
   vg.setInputCloud(cloud_filtered);
   vg.setLeafSize(0.01f,0.01f,0.01f);
   vg.filter(*cloud_downsampled);
-  std::cerr<<"Point Cloud has "<<cloud_downsampled->points.size()<<" after downsampeling"<<std::endl;
+  // std::cerr<<"Point Cloud has "<<cloud_downsampled->points.size()<<" after downsampeling"<<std::endl;
 
   //fitting a plane to the filtered cloud
   pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients ());
@@ -97,13 +104,13 @@ void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
     std::cerr << "Could not estimate a planar model for the given dataset." << std::endl;
     exit(0);
   }
-  std::cerr<<"Plane Inliers found: "<<inliers->indices.size()<<std::endl;
+  // std::cerr<<"Plane Inliers found: "<<inliers->indices.size()<<std::endl;
 
   //splitting the cloud in two: plane + other
   pcl::ExtractIndices<pcl::PointXYZRGB> extract;
   extract.setInputCloud(cloud_filtered);
   extract.setIndices(inliers);
-  std::cerr<<"Extracting plane"<<std::endl;
+  // std::cerr<<"Extracting plane"<<std::endl;
   extract.filter(*cloud_plane);
 
   // Remove the plane from the rest of the point cloud
@@ -118,8 +125,8 @@ void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
   proj.setInputCloud (cloud_filtered);
   proj.setModelCoefficients (coefficients);
   proj.filter (*cloud_projected);
-  std::cerr << "PointCloud after projection has: "
-            << cloud_projected->points.size () << " data points." << std::endl;
+  // std::cerr << "PointCloud after projection has: "
+  //           << cloud_projected->points.size () << " data points." << std::endl;
   // Create a Concave Hull representation of the projected inliers
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_hull (new pcl::PointCloud<pcl::PointXYZRGB>);
   pcl::ConvexHull<pcl::PointXYZRGB> chull;
@@ -127,8 +134,8 @@ void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
   // chull.setAlpha (0.1);
   chull.reconstruct (*cloud_hull);
 
-  std::cerr << "Convex hull has: " << cloud_hull->points.size ()
-            << " data points." << std::endl;
+  // std::cerr << "Convex hull has: " << cloud_hull->points.size ()
+  //           << " data points." << std::endl;
 
   // Use ExtractPolygonalPrism to get all the point clouds above the plane in a given range
   
@@ -161,7 +168,7 @@ void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
 
 
   // cluster extraction
-  std::cout << "PointCloud before filtering has: " << object_clusters->points.size () << " data points." << std::endl; //*
+  // std::cout << "PointCloud before filtering has: " << object_clusters->points.size () << " data points." << std::endl; //*
 
   // Create the filtering object: downsample the dataset using a leaf size of 1cm
   pcl::VoxelGrid<pcl::PointXYZRGB> vg_clusters;
@@ -169,7 +176,7 @@ void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
   vg_clusters.setInputCloud (object_clusters);
   vg_clusters.setLeafSize (0.01f, 0.01f, 0.01f);
   vg_clusters.filter (*cluster_cloud_filtered);
-  std::cout << "PointCloud after filtering has: " << cluster_cloud_filtered->points.size ()  << " data points." << std::endl; //*
+  // std::cout << "PointCloud after filtering has: " << cluster_cloud_filtered->points.size ()  << " data points." << std::endl; //*
 
   // Creating the KdTree object for the search method of the extraction
   pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB>);
@@ -185,6 +192,9 @@ void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
   ec.setInputCloud (cluster_cloud_filtered);
   ec.extract (cluster_indices);
 
+	// temporary list of perceived objects
+  std::vector<perception_group_msgs::PerceivedObject> tmpPerceivedObjects;
+
   int j = 0;
   for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it)
   {
@@ -195,7 +205,7 @@ void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
     cloud_cluster->height = 1;
     cloud_cluster->is_dense = true;
 
-    std::cout << "PointCloud representing the Cluster" << j << ": " << cloud_cluster->points.size () << " data points." << std::endl;
+    // std::cout << "PointCloud representing the Cluster" << j << ": " << cloud_cluster->points.size () << " data points." << std::endl;
 
     // Calculate the volume of each cluster
     // Create a convex hull around the cluster and calculate the total volume
@@ -205,17 +215,36 @@ void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
     hull.setDimension(3);
     hull.setComputeAreaVolume(true); // This creates alot of output, but it's necessary for getTotalVolume() ....
     hull.reconstruct (*hull_points);
-    std::cout << "Volume of Cluster " << j << " is: " << hull.getTotalVolume() << std::endl;
-    std::cerr << "Convex hull has: " << hull_points->points.size ()
-            << " data points." << std::endl;
+    // std::cout << "Volume of Cluster " << j << " is: " << hull.getTotalVolume() << std::endl;
+    // std::cerr << "Convex hull has: " << hull_points->points.size ()
+            // << " data points." << std::endl;
 
     // Centroid calulcation
     Eigen::Vector4f centroid;
     pcl::compute3DCentroid (*hull_points, centroid);  
     std::cout << "The centroid vector is: " << centroid[0] << ","<<centroid[1]<<"," << centroid[2] <<","<< centroid[3] <<std::endl;
 
+		// Add the detected cluster to the list of perceived objects
+		perception_group_msgs::PerceivedObject percObj;
+		percObj.c_id=23;
+		geometry_msgs::Point ptCentroid;
+		ptCentroid.x=centroid[0];
+		ptCentroid.y=centroid[1];
+		ptCentroid.z=centroid[2];
+		percObj.c_centroid = ptCentroid;
+		percObj.c_volume = hull.getTotalVolume();
+
+		tmpPerceivedObjects.push_back(percObj);
+
     j++;
   }
+
+	// Lock the buffer
+	mutex.lock();
+	perceivedObjects=tmpPerceivedObjects;
+	mutex.unlock();
+	// Insert the real results
+	// Unlock the buffer
 }
 
 void cb_(const sensor_msgs::PointCloud2ConstPtr& inputCloud)
@@ -230,11 +259,61 @@ void cb_(const sensor_msgs::PointCloud2ConstPtr& inputCloud)
   //ros::shutdown();
 }
 
+bool getClusters(perception_group_msgs::GetClusters::Request  &req,
+         perception_group_msgs::GetClusters::Response &res)
+{
+	ROS_INFO("Request was ");
+	ROS_INFO(req.s.c_str());
+	// std::vector<perception_group_msgs::PerceivedObject> perceivedObjects;
+
+	// // Create the first object
+	// perception_group_msgs::PerceivedObject objectOne;
+	// objectOne.c_id=23;
+	// geometry_msgs::Point centroid;
+	// centroid.x=1;
+	// centroid.y=2;
+	// centroid.z=3;
+	// objectOne.c_centroid = centroid;
+	// objectOne.c_volume = 2.23f;
+
+	// // Create the second object
+	// perception_group_msgs::PerceivedObject objectTwo;
+	// objectTwo.c_id=24;
+	// geometry_msgs::Point centroid2;
+	// centroid2.x=4;
+	// centroid2.y=5;
+	// centroid2.z=6;
+	// objectTwo.c_centroid = centroid2;
+	// objectTwo.c_volume = 3.24f;
+
+	// geometry_msgs/Point c_centroid
+	// float32 c_volume
+
+
+
+	// perceivedObjects.push_back(objectOne);
+	// perceivedObjects.push_back(objectTwo);
+	mutex.lock();
+	res.perceivedObjs = perceivedObjects;
+	mutex.unlock();
+
+  // res.sum = req.a + req.b;
+  // ROS_INFO("request: x=%ld, y=%ld", (long int)req.a, (long int)req.b);
+  // ROS_INFO("sending back response: [%ld]", (long int)res.sum);
+  return true;
+}
+
+
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "listener");
   ros::NodeHandle n;
-  ros::Subscriber sub = n.subscribe("/camera/depth_registered/points", 10, cb_);
+	// Subscribe to the depth information topic
+  ros::Subscriber sub = n.subscribe("/camera/depth_registered/points", 2, cb_);
+
+	// Advertise the GetClusters service
+  ros::ServiceServer clusterService = n.advertiseService("GetClusters", getClusters);
+  ROS_INFO("Ready to get clusters");
   ros::spin();
   return 0;
 }
