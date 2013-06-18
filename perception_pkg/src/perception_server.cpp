@@ -1,5 +1,5 @@
 /**
- * extract_objects.cpp
+ * perception_server.cpp
  *
  * Process a complete point cloud from ROS
  * and calculate the volume and centroid of the objects.
