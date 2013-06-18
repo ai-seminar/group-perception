@@ -1,0 +1,22 @@
+{
+	"folders":
+	[
+		{
+			"path": "/home/andre/workspace/group_perception/perception_pkg/src"
+		}
+	],
+
+	"settings":
+	{
+	   "sublimeclang_options":
+	    [
+	        "-I/opt/ros/fuerte/include",
+			"-I/opt/ros/fuerte/include/pcl-1.5",
+			"-I/usr/include/eigen3",
+			"-I/home/andre/workspace/group_perception/perception_group_msgs/msg_gen/cpp/include",
+			"-I/home/andre/workspace/group_perception/perception_group_msgs/srv_gen/cpp/include",
+			"-I/usr/include/vtk-5.8"
+	    ]
+	}
+}
+
