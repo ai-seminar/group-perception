@@ -41,9 +41,9 @@
 #include <pcl/surface/convex_hull.h>
 
 #include "perception_group_msgs/PerceivedObject.h"
+#include "boost/date_time/posix_time/posix_time.hpp"
 #include "geometry_msgs/Point.h"
 #include "perception_group_msgs/GetClusters.h"
-
 
 static boost::signals2::mutex mutex;
 std::vector<perception_group_msgs::PerceivedObject> perceivedObjects;
@@ -60,33 +60,22 @@ void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_projected (new pcl::PointCloud<pcl::PointXYZRGB>());
   pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>);
 
-  // std::cerr<<"Input cloud has " <<cloud_in->points.size()<<" point! "<<std::endl;
-
-  //create visualization opbject
-  // pcl::visualization::CloudViewer viewer("Simple Cloud Viewer");
-  // viewer.showCloud(cloud_in);
-  // while(!viewer.wasStopped ()){}
-
   //removing nans from point clouds
   std::vector<int> nans;
   pcl::removeNaNFromPointCloud(*cloud_in,*cloud_nanles,nans);
-  // std::cerr<<"Size of point cloud after removal of nans "<<cloud_nanles->points.size()<<"!"<<std::endl;
 
   //filtering cloud on z axis
   pcl::PassThrough<pcl::PointXYZRGB> pass;
   pass.setInputCloud(cloud_nanles);
   pass.setFilterFieldName("z");
   pass.setFilterLimits(0.0, 1.5);
-  //pass.setFilterLimitsNegative(true);
   pass.filter(*cloud_filtered);
-  // std::cerr<<"Point Cloud has "<<cloud_filtered->points.size()<<" after filtering"<<std::endl;
 
   //voxelizing cloud
   pcl::VoxelGrid <pcl::PointXYZRGB> vg;
   vg.setInputCloud(cloud_filtered);
   vg.setLeafSize(0.01f,0.01f,0.01f);
   vg.filter(*cloud_downsampled);
-  // std::cerr<<"Point Cloud has "<<cloud_downsampled->points.size()<<" after downsampeling"<<std::endl;
 
   //fitting a plane to the filtered cloud
   pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients ());
@@ -104,13 +93,11 @@ void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
     std::cerr << "Could not estimate a planar model for the given dataset." << std::endl;
     exit(0);
   }
-  // std::cerr<<"Plane Inliers found: "<<inliers->indices.size()<<std::endl;
 
   //splitting the cloud in two: plane + other
   pcl::ExtractIndices<pcl::PointXYZRGB> extract;
   extract.setInputCloud(cloud_filtered);
   extract.setIndices(inliers);
-  // std::cerr<<"Extracting plane"<<std::endl;
   extract.filter(*cloud_plane);
 
   // Remove the plane from the rest of the point cloud
@@ -125,17 +112,12 @@ void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
   proj.setInputCloud (cloud_filtered);
   proj.setModelCoefficients (coefficients);
   proj.filter (*cloud_projected);
-  // std::cerr << "PointCloud after projection has: "
-  //           << cloud_projected->points.size () << " data points." << std::endl;
+
   // Create a Concave Hull representation of the projected inliers
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_hull (new pcl::PointCloud<pcl::PointXYZRGB>);
   pcl::ConvexHull<pcl::PointXYZRGB> chull;
   chull.setInputCloud (cloud_projected);
-  // chull.setAlpha (0.1);
   chull.reconstruct (*cloud_hull);
-
-  // std::cerr << "Convex hull has: " << cloud_hull->points.size ()
-  //           << " data points." << std::endl;
 
   // Use ExtractPolygonalPrism to get all the point clouds above the plane in a given range
   
@@ -164,11 +146,10 @@ void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
     extract.filter (*object_clusters);
   }
   else
-   PCL_ERROR ("The input cloud does not represent a planar surface.\n");
+   ROS_ERROR ("The input cloud does not represent a planar surface.\n");
 
 
   // cluster extraction
-  // std::cout << "PointCloud before filtering has: " << object_clusters->points.size () << " data points." << std::endl; //*
 
   // Create the filtering object: downsample the dataset using a leaf size of 1cm
   pcl::VoxelGrid<pcl::PointXYZRGB> vg_clusters;
@@ -176,7 +157,6 @@ void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
   vg_clusters.setInputCloud (object_clusters);
   vg_clusters.setLeafSize (0.01f, 0.01f, 0.01f);
   vg_clusters.filter (*cluster_cloud_filtered);
-  // std::cout << "PointCloud after filtering has: " << cluster_cloud_filtered->points.size ()  << " data points." << std::endl; //*
 
   // Creating the KdTree object for the search method of the extraction
   pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB>);
@@ -195,6 +175,7 @@ void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
 	// temporary list of perceived objects
   std::vector<perception_group_msgs::PerceivedObject> tmpPerceivedObjects;
 
+  std::cout << "Loop start: " << boost::posix_time::microsec_clock::universal_time() << std::endl;
   int j = 0;
   for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it)
   {
@@ -205,8 +186,6 @@ void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
     cloud_cluster->height = 1;
     cloud_cluster->is_dense = true;
 
-    // std::cout << "PointCloud representing the Cluster" << j << ": " << cloud_cluster->points.size () << " data points." << std::endl;
-
     // Calculate the volume of each cluster
     // Create a convex hull around the cluster and calculate the total volume
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr hull_points (new pcl::PointCloud<pcl::PointXYZRGB> ());
@@ -215,9 +194,6 @@ void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
     hull.setDimension(3);
     hull.setComputeAreaVolume(true); // This creates alot of output, but it's necessary for getTotalVolume() ....
     hull.reconstruct (*hull_points);
-    // std::cout << "Volume of Cluster " << j << " is: " << hull.getTotalVolume() << std::endl;
-    // std::cerr << "Convex hull has: " << hull_points->points.size ()
-            // << " data points." << std::endl;
 
     // Centroid calulcation
     Eigen::Vector4f centroid;
@@ -238,11 +214,13 @@ void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
 
     j++;
   }
-
+  std::cout << "Loop end: " << boost::posix_time::microsec_clock::universal_time() << std::endl;
 	// Lock the buffer
+  std::cout << "mutex lock: " << boost::posix_time::microsec_clock::universal_time() << std::endl;
 	mutex.lock();
 	perceivedObjects=tmpPerceivedObjects;
 	mutex.unlock();
+  std::cout << "mutex unlock: " << boost::posix_time::microsec_clock::universal_time() << std::endl;
 	// Insert the real results
 	// Unlock the buffer
 }
