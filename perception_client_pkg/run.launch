@@ -5,6 +5,6 @@
   </include>
 
   <node pkg="perception_pkg" name="perception" type="perception_server" output="screen"></node>
-  <node pkg="perception_client_pkg" name="perception_client" type="perception_client" args="5 10" output="screen"></node>
+  <node pkg="perception_client_pkg" name="perception_client" type="perception_client" output="screen"></node>
 
 </launch>
