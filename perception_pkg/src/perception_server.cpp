@@ -55,6 +55,7 @@ private:
   ros::NodeHandle n;
   ros::ServiceServer clusterService;
   ros::Subscriber sub;
+	int objectID;
   
 public:
   PerceptionServer(ros::NodeHandle& n_);
@@ -69,6 +70,7 @@ public:
     // Advertise Service
     clusterService = n.advertiseService("GetClusters", 
       &PerceptionServer::getClusters, this);
+		objectID = 0;
   }
 
   void PerceptionServer::process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
@@ -225,7 +227,8 @@ public:
 
       // Add the detected cluster to the list of perceived objects
       perception_group_msgs::PerceivedObject percObj;
-      percObj.c_id=23;
+      percObj.c_id= objectID;
+			objectID++;
       geometry_msgs::Point ptCentroid;
       ptCentroid.x=centroid[0];
       ptCentroid.y=centroid[1];
