@@ -51,11 +51,11 @@ class PerceptionServer
 private:
   boost::signals2::mutex mutex;
   std::vector<perception_group_msgs::PerceivedObject> perceivedObjects;
-  bool process;
+  bool processing;
   ros::NodeHandle n;
   ros::ServiceServer clusterService;
   ros::Subscriber sub;
-	int objectID;
+  int objectID;
   
 public:
   PerceptionServer(ros::NodeHandle& n_);
@@ -70,7 +70,7 @@ public:
     // Advertise Service
     clusterService = n.advertiseService("GetClusters", 
       &PerceptionServer::getClusters, this);
-		objectID = 0;
+    objectID = 0;
   }
 
   void PerceptionServer::process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
@@ -228,7 +228,7 @@ public:
       // Add the detected cluster to the list of perceived objects
       perception_group_msgs::PerceivedObject percObj;
       percObj.c_id= objectID;
-			objectID++;
+      objectID++;
       geometry_msgs::Point ptCentroid;
       ptCentroid.x=centroid[0];
       ptCentroid.y=centroid[1];
@@ -249,16 +249,13 @@ public:
   void PerceptionServer::receive_cloud(const sensor_msgs::PointCloud2ConstPtr& inputCloud)
   {
     ROS_INFO("CALLBACK");
-    if(process)
-    {
       pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in (new pcl::PointCloud<pcl::PointXYZRGB>());
       pcl::fromROSMsg(*inputCloud,*cloud_in);
 
       process_cloud(cloud_in);
-      process = false;
+      processing = false;
 
       ROS_INFO("Wrote a new point cloud: size = %d",cloud_in->points.size());
-    }
   }
 
   bool PerceptionServer::getClusters(perception_group_msgs::GetClusters::Request &req,
@@ -266,20 +263,20 @@ public:
   {
     ROS_INFO("Request was ");
     ROS_INFO(req.s.c_str());
-    process = true;
+    processing = true;
 
     // Subscribe to the depth information topic
     sub = n.subscribe("/camera/depth_registered/points", 2, 
       &PerceptionServer::receive_cloud, this);
     
     ROS_INFO("Waiting for processed cloud");
-    //while(!processing_complete)
-    //  boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+    while(processing)
+      boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+
     mutex.lock();
     res.perceivedObjs = perceivedObjects;
     mutex.unlock();
 
-    // pointcloud topic will unsubscribe, when sub is out of scope
     return true;
   }
 
@@ -290,6 +287,7 @@ int main(int argc, char **argv)
   PerceptionServer ps(nh);
 
   ROS_INFO("Ready to get clusters");
-  ros::spin();
+  ros::MultiThreadedSpinner spinner(2);
+  spinner.spin();
   return 0;
 }
