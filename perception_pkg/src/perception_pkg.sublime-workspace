@@ -4,6 +4,10 @@
 		"selected_items":
 		[
 			[
+				"mi",
+				"milliseconds	typedef"
+			],
+			[
 				"clou",
 				"cloud_in"
 			]
@@ -15,15 +19,7 @@
 			"file": "/home/andre/workspace/group_perception/perception_client_pkg/run.launch",
 			"settings":
 			{
-				"buffer_size": 414,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "subscribe.cpp",
-			"settings":
-			{
-				"buffer_size": 656,
+				"buffer_size": 348,
 				"line_ending": "Unix"
 			}
 		},
@@ -31,47 +27,15 @@
 			"file": "perception_server.cpp",
 			"settings":
 			{
-				"buffer_size": 1974,
+				"buffer_size": 11044,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "extract_objects.cpp",
+			"file": "/home/andre/workspace/group_perception/perception_client_pkg/src/perception_client.cpp",
 			"settings":
 			{
-				"buffer_size": 12153,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "perception_pkg.sublime-project",
-			"settings":
-			{
-				"buffer_size": 476,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "objects_on_table.cpp",
-			"settings":
-			{
-				"buffer_size": 7658,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "/home/andre/.config/sublime-text-2/Packages/User/SublimeClang.sublime-settings",
-			"settings":
-			{
-				"buffer_size": 4,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "/home/andre/.config/sublime-text-2/Packages/SublimeClang/SublimeClang.sublime-settings",
-			"settings":
-			{
-				"buffer_size": 13893,
+				"buffer_size": 1988,
 				"line_ending": "Unix"
 			}
 		}
@@ -79,7 +43,7 @@
 	"build_system": "",
 	"command_palette":
 	{
-		"height": 138.0,
+		"height": 159.0,
 		"selected_items":
 		[
 			[
@@ -120,6 +84,12 @@
 	},
 	"file_history":
 	[
+		"/home/andre/.config/sublime-text-2/Packages/SublimeClang/SublimeClang.sublime-settings",
+		"/home/andre/.config/sublime-text-2/Packages/User/SublimeClang.sublime-settings",
+		"/home/andre/workspace/group_perception/perception_pkg/src/objects_on_table.cpp",
+		"/home/andre/workspace/group_perception/perception_pkg/src/perception_pkg.sublime-project",
+		"/home/andre/workspace/group_perception/perception_pkg/src/extract_objects.cpp",
+		"/home/andre/workspace/group_perception/perception_pkg/src/subscribe.cpp",
 		"/home/andre/workspace/group_perception/perception_pkg/src/extract_objects.sublime-project",
 		"/home/andre/workspace/group_perception/perception_pkg/src/perception_pkg.sublime-workspace",
 		"/home/andre/workspace/group_perception/perception_pkg/src/pcd_processor.cpp",
@@ -143,6 +113,8 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"failed",
+			"add_two_ints_client",
 			" ",
 			"\n/",
 			" ",
@@ -175,7 +147,7 @@
 	"groups":
 	[
 		{
-			"selected": 4,
+			"selected": 1,
 			"sheets":
 			[
 				{
@@ -183,15 +155,15 @@
 					"file": "/home/andre/workspace/group_perception/perception_client_pkg/run.launch",
 					"settings":
 					{
-						"buffer_size": 414,
+						"buffer_size": 348,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								394,
-								394
+								0,
+								0
 							]
 						],
 						"settings":
@@ -208,45 +180,46 @@
 				},
 				{
 					"buffer": 1,
-					"file": "subscribe.cpp",
+					"file": "perception_server.cpp",
 					"settings":
 					{
-						"buffer_size": 656,
+						"buffer_size": 11044,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								0,
-								0
+								10141,
+								10141
 							]
 						],
 						"settings":
 						{
 							"syntax": "Packages/C++/C++.tmLanguage",
-							"translate_tabs_to_spaces": false
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 4221.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
 				},
 				{
 					"buffer": 2,
-					"file": "perception_server.cpp",
+					"file": "/home/andre/workspace/group_perception/perception_client_pkg/src/perception_client.cpp",
 					"settings":
 					{
-						"buffer_size": 1974,
+						"buffer_size": 1988,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								340,
-								340
+								514,
+								514
 							]
 						],
 						"settings":
@@ -256,144 +229,7 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"type": "text"
-				},
-				{
-					"buffer": 3,
-					"file": "extract_objects.cpp",
-					"settings":
-					{
-						"buffer_size": 12153,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								416,
-								416
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/C++/C++.tmLanguage",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"type": "text"
-				},
-				{
-					"buffer": 4,
-					"file": "perception_pkg.sublime-project",
-					"settings":
-					{
-						"buffer_size": 476,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								476,
-								476
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JavaScript/JSON.tmLanguage",
-							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"type": "text"
-				},
-				{
-					"buffer": 5,
-					"file": "objects_on_table.cpp",
-					"settings":
-					{
-						"buffer_size": 7658,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								223,
-								223
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/C++/C++.tmLanguage",
-							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"type": "text"
-				},
-				{
-					"buffer": 6,
-					"file": "/home/andre/.config/sublime-text-2/Packages/User/SublimeClang.sublime-settings",
-					"settings":
-					{
-						"buffer_size": 4,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								2,
-								2
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JavaScript/JSON.tmLanguage",
-							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"type": "text"
-				},
-				{
-					"buffer": 7,
-					"file": "/home/andre/.config/sublime-text-2/Packages/SublimeClang/SublimeClang.sublime-settings",
-					"settings":
-					{
-						"buffer_size": 13893,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								13745,
-								13745
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JavaScript/JSON.tmLanguage",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 5832.0,
+						"translation.y": 102.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -434,7 +270,7 @@
 	"menu_visible": true,
 	"output.clang":
 	{
-		"height": 196.0
+		"height": 153.0
 	},
 	"replace":
 	{
@@ -461,6 +297,6 @@
 	"show_open_files": true,
 	"show_tabs": true,
 	"side_bar_visible": true,
-	"side_bar_width": 275.0,
+	"side_bar_width": 144.0,
 	"status_bar_visible": true
 }
