@@ -54,8 +54,8 @@ private:
   bool process;
   ros::NodeHandle n;
   ros::ServiceServer clusterService;
-  ros::Subscriber sub;
 	int objectID;
+	bool processing_complete;
   
 public:
   PerceptionServer(ros::NodeHandle& n_);
@@ -256,6 +256,7 @@ public:
 
       process_cloud(cloud_in);
       process = false;
+			processing_complete=true;
 
       ROS_INFO("Wrote a new point cloud: size = %d",cloud_in->points.size());
     }
@@ -264,6 +265,8 @@ public:
   bool PerceptionServer::getClusters(perception_group_msgs::GetClusters::Request &req,
            perception_group_msgs::GetClusters::Response &res)
   {
+		ros::Subscriber sub;
+		processing_complete=false;
     ROS_INFO("Request was ");
     ROS_INFO(req.s.c_str());
     process = true;
@@ -273,7 +276,12 @@ public:
       &PerceptionServer::receive_cloud, this);
     
     ROS_INFO("Waiting for processed cloud");
-    //while(!processing_complete)
+		ros::Rate r(10); // 10 hz	
+
+    while(!processing_complete){
+			ros::spinOnce();
+			r.sleep();
+		}
     //  boost::this_thread::sleep(boost::posix_time::milliseconds(10));
     mutex.lock();
     res.perceivedObjs = perceivedObjects;
