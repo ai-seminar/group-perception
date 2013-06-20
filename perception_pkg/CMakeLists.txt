@@ -35,6 +35,7 @@ rosbuild_add_boost_directories()
 rosbuild_add_executable(perception_server src/perception_server.cpp)
 target_link_libraries(perception_server libvtkCommon.so libvtkFiltering.so libvtkRendering.so)
 target_link_libraries(perception_server ${PCL_LIBRARIES})
+rosbuild_link_boost(perception_server thread)
 
 rosbuild_add_executable(pcd_processor src/pcd_processor.cpp)
 target_link_libraries(pcd_processor libvtkCommon.so libvtkFiltering.so libvtkRendering.so)
