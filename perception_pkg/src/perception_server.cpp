@@ -54,7 +54,6 @@ private:
   bool processing;
   ros::NodeHandle n;
   ros::ServiceServer clusterService;
-  ros::Subscriber sub;
   int objectID;
   
 public:
@@ -261,6 +260,7 @@ public:
   bool PerceptionServer::getClusters(perception_group_msgs::GetClusters::Request &req,
            perception_group_msgs::GetClusters::Response &res)
   {
+		ros::Subscriber sub;
     ROS_INFO("Request was ");
     ROS_INFO(req.s.c_str());
     processing = true;
