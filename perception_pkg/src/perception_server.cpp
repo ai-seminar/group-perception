@@ -4,6 +4,8 @@
  * Process a complete point cloud from ROS
  * and calculate the volume and centroid of the objects.
  */
+
+#include <algorithm>
 #include "ros/ros.h"
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
@@ -46,22 +48,26 @@
 #include "geometry_msgs/Point.h"
 #include "perception_group_msgs/GetClusters.h"
 
+bool ReceivedObjectGreaterThan(const perception_group_msgs::PerceivedObject& p1, const perception_group_msgs::PerceivedObject& p2){
+	return p1.c_volume > p2.c_volume;
+}
+
 class PerceptionServer
 {
-private:
-  boost::signals2::mutex mutex;
-  std::vector<perception_group_msgs::PerceivedObject> perceivedObjects;
-  bool processing;
-  ros::NodeHandle n;
-  ros::ServiceServer clusterService;
-  int objectID;
-  
-public:
-  PerceptionServer(ros::NodeHandle& n_);
-  void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in);
-  void receive_cloud(const sensor_msgs::PointCloud2ConstPtr& inputCloud);
-  bool getClusters(perception_group_msgs::GetClusters::Request  &req,
-           perception_group_msgs::GetClusters::Response &res);
+	private:
+		boost::signals2::mutex mutex;
+		std::vector<perception_group_msgs::PerceivedObject> perceivedObjects;
+		bool processing;
+		ros::NodeHandle n;
+		ros::ServiceServer clusterService;
+		int objectID;
+		
+	public:
+		PerceptionServer(ros::NodeHandle& n_);
+		void process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in);
+		void receive_cloud(const sensor_msgs::PointCloud2ConstPtr& inputCloud);
+		bool getClusters(perception_group_msgs::GetClusters::Request  &req,
+						 perception_group_msgs::GetClusters::Response &res);
 };
 
   PerceptionServer::PerceptionServer(ros::NodeHandle& n_) : n(n_)
@@ -239,6 +245,8 @@ public:
 
       j++;
     }
+		// Sort by volume
+		std::sort(tmpPerceivedObjects.begin(), tmpPerceivedObjects.end(), ReceivedObjectGreaterThan);
     
     mutex.lock();
     perceivedObjects=tmpPerceivedObjects;
@@ -248,6 +256,9 @@ public:
   void PerceptionServer::receive_cloud(const sensor_msgs::PointCloud2ConstPtr& inputCloud)
   {
     ROS_INFO("CALLBACK");
+
+		// process only once
+		if(processing){
       pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in (new pcl::PointCloud<pcl::PointXYZRGB>());
       pcl::fromROSMsg(*inputCloud,*cloud_in);
 
@@ -255,6 +266,7 @@ public:
       processing = false;
 
       ROS_INFO("Wrote a new point cloud: size = %d",cloud_in->points.size());
+		}
   }
 
   bool PerceptionServer::getClusters(perception_group_msgs::GetClusters::Request &req,
@@ -266,12 +278,16 @@ public:
     processing = true;
 
     // Subscribe to the depth information topic
-    sub = n.subscribe("/camera/depth_registered/points", 2, 
+    sub = n.subscribe("/camera/depth_registered/points", 1, 
       &PerceptionServer::receive_cloud, this);
     
     ROS_INFO("Waiting for processed cloud");
-    while(processing)
-      boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+		ros::Rate r(20); // 20 hz
+    while(processing){
+			ros::spinOnce();
+			r.sleep();
+		}
+      // boost::this_thread::sleep(boost::posix_time::milliseconds(10));
 
     mutex.lock();
     res.perceivedObjs = perceivedObjects;
