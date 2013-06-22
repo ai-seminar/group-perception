@@ -1,0 +1,10 @@
+<stack>
+  <description brief="A simple object recognition server and client">
+    bla bla...
+  </description>
+  <author>Andre Luebken, Patrick Mania</author>
+  <license>Beer License</license>
+  <review status="unreviewed" notes=""/>
+  <url>https://github.com/ai-seminar/group-perception</url>
+  <depend stack="ros"/>
+</stack>
