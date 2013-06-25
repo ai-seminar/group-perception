@@ -205,7 +205,6 @@ class PerceptionServer
     // temporary list of perceived objects
     std::vector<perception_group_msgs::PerceivedObject> tmpPerceivedObjects;
 
-    std::cout << "Loop start: " << boost::posix_time::microsec_clock::universal_time() << std::endl;
     int j = 0;
     for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it)
     {
@@ -255,7 +254,6 @@ class PerceptionServer
 
   void PerceptionServer::receive_cloud(const sensor_msgs::PointCloud2ConstPtr& inputCloud)
   {
-    ROS_INFO("CALLBACK");
 
 		// process only once
 		if(processing){
