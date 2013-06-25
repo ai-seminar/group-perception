@@ -183,14 +183,14 @@ int main(int argc, char **argv)
 
 	// Create a ConvexHull for the table plane
   // Project the model inliers
-  pcl::ProjectInliers<pcl::PointXYZRGB> proj;
-  proj.setModelType (pcl::SACMODEL_PLANE);
-  proj.setIndices (inliers);
-  proj.setInputCloud (cloud_filtered);
-  proj.setModelCoefficients (coefficients);
-  proj.filter (*cloud_projected);
-  std::cerr << "PointCloud after projection has: "
-            << cloud_projected->points.size () << " data points." << std::endl;
+  // pcl::ProjectInliers<pcl::PointXYZRGB> proj;
+  // proj.setModelType (pcl::SACMODEL_PLANE);
+  // proj.setIndices (inliers);
+  // proj.setInputCloud (cloud_filtered);
+  // proj.setModelCoefficients (coefficients);
+  // proj.filter (*cloud_projected);
+  // std::cerr << "PointCloud after projection has: "
+  //           << cloud_projected->points.size () << " data points." << std::endl;
 
 	// NOT NECESSARY IN PRODUCTION - This will only write the calculated hull as a separate point cloud
 	//
