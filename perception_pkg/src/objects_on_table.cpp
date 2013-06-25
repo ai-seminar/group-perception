@@ -23,6 +23,11 @@
 #include <pcl/filters/project_inliers.h>
 #include <pcl/surface/convex_hull.h>
 
+#include <pcl/kdtree/kdtree.h>
+#include <pcl/segmentation/extract_clusters.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+
 int main(int argc, char **argv)
 {
 
@@ -124,6 +129,50 @@ int main(int argc, char **argv)
 	extract.filter(*cloud_plane);
 	std::cerr<<"Writing output cloud plane.pcd"<<std::endl;
 	writer.write("plane.pcd",*cloud_plane);
+	
+	// Use cluster extraction to get rid of the outliers of the table
+	pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB>);
+  tree->setInputCloud (cloud_plane);	
+	std::vector<pcl::PointIndices> cluster_indices;
+  pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec;
+  ec.setClusterTolerance (0.02); // 2cm
+  ec.setMinClusterSize (10000);
+  ec.setMaxClusterSize (200000);
+  ec.setSearchMethod (tree);
+  ec.setInputCloud (cloud_plane);
+  ec.extract (cluster_indices);
+
+	// Extract the biggest cluster (e.g. the table) in the plane cloud
+	std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin ();
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr plane_cluster (new pcl::PointCloud<pcl::PointXYZRGB>);
+	for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); pit++)
+		plane_cluster->points.push_back (cloud_plane->points[*pit]); //*
+	plane_cluster->width = plane_cluster->points.size ();
+	plane_cluster->height = 1;
+	plane_cluster->is_dense = true;
+
+	std::cout << "Table point cloud " << plane_cluster->points.size () << " data points." << std::endl;
+	writer.write<pcl::PointXYZRGB> ("plane_cluster.pcd", *plane_cluster, false);	
+
+	// int j = 0;
+  // for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it)
+  // {
+  //   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZRGB>);
+  //   for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); pit++)
+  //     cloud_cluster->points.push_back (cloud_plane->points[*pit]); //*
+  //   cloud_cluster->width = cloud_cluster->points.size ();
+  //   cloud_cluster->height = 1;
+  //   cloud_cluster->is_dense = true;
+
+  //   std::cout << "PointCloud representing the Cluster: " << cloud_cluster->points.size () << " data points." << std::endl;
+  //   std::stringstream ss;
+  //   ss << "cloud_cluster_" << j << ".pcd";
+  //   writer.write<pcl::PointXYZRGB> (ss.str (), *cloud_cluster, false); //*
+  //   j++;
+  // }
+
+
+
 
 	// Remove the plane from the rest of the point cloud
 	extract.setNegative(true);
@@ -142,17 +191,20 @@ int main(int argc, char **argv)
   proj.filter (*cloud_projected);
   std::cerr << "PointCloud after projection has: "
             << cloud_projected->points.size () << " data points." << std::endl;
-  // Create a Concave Hull representation of the projected inliers
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_hull (new pcl::PointCloud<pcl::PointXYZRGB>);
-  pcl::ConvexHull<pcl::PointXYZRGB> chull;
-  chull.setInputCloud (cloud_projected);
-  // chull.setAlpha (0.1);
-  chull.reconstruct (*cloud_hull);
-	std::cerr<<"Writing plane hull cloud to plane_hull.pcd"<<std::endl;
-	writer.write("plane_hull.pcd",*cloud_hull);
 
-  std::cerr << "Convex hull has: " << cloud_hull->points.size ()
-            << " data points." << std::endl;
+	// NOT NECESSARY IN PRODUCTION - This will only write the calculated hull as a separate point cloud
+	//
+  // Create a Concave Hull representation of the projected inliers
+  // pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_hull (new pcl::PointCloud<pcl::PointXYZRGB>);
+  // pcl::ConvexHull<pcl::PointXYZRGB> chull;
+  // chull.setInputCloud (cloud_projected);
+  // chull.setDimension(3);
+  // chull.reconstruct (*cloud_hull);
+	// std::cerr<<"Writing plane hull cloud to plane_hull.pcd"<<std::endl;
+	// writer.write("plane_hull.pcd",*cloud_hull);
+
+  // std::cerr << "Convex hull has: " << cloud_hull->points.size ()
+  //           << " data points." << std::endl;
 
 	// Use ExtractPolygonalPrism to get all the point clouds above the plane in a given range
 	
@@ -161,8 +213,8 @@ int main(int argc, char **argv)
 	pcl::ConvexHull<pcl::PointXYZRGB> hull;
 	pcl::PointIndices::Ptr object_indices (new pcl::PointIndices);
 
-	// hull.setDimension (2); // not necessarily needed, but we need to check the dimensionality of the output
-	hull.setInputCloud (cloud_plane);
+	hull.setDimension (2); // not necessarily needed, but we need to check the dimensionality of the output
+	hull.setInputCloud (plane_cluster);
 	hull.reconstruct (*hull_points);
 	if (hull.getDimension () == 2)
 	{
