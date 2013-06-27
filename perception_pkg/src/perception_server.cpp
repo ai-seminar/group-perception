@@ -48,19 +48,39 @@
 #include "geometry_msgs/Point.h"
 #include "perception_group_msgs/GetClusters.h"
 
+#include <pcl/kdtree/kdtree.h>
+#include <pcl/segmentation/extract_clusters.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+
+// Comparator function for PerceivedObject's. PerceivedObjects will be compared by their volume
 bool ReceivedObjectGreaterThan(const perception_group_msgs::PerceivedObject& p1, const perception_group_msgs::PerceivedObject& p2){
 	return p1.c_volume > p2.c_volume;
 }
 
+/*
+ * Base class for the perception server
+ *
+ * This class advertises the GetClusters service when it is constructed.
+ * For every service request, the server will subscribe to the /camera/depth_registered/points topic
+ * and take exactly one point cloud.
+ * Afterwards, it will process it, e.g. calculate the volume and centroid of every PerceivedObject, and return the results
+ * to the service requester.
+ */
 class PerceptionServer
 {
 	private:
+		// Mutex for buffer locking
 		boost::signals2::mutex mutex;
+		// Buffer for the last perceived objects
 		std::vector<perception_group_msgs::PerceivedObject> perceivedObjects;
+		// Indicates that a subscription request is in process.
 		bool processing;
+		// ID counter for the perceived objects
+		int objectID;
+
 		ros::NodeHandle n;
 		ros::ServiceServer clusterService;
-		int objectID;
 		
 	public:
 		PerceptionServer(ros::NodeHandle& n_);
@@ -70,6 +90,10 @@ class PerceptionServer
 						 perception_group_msgs::GetClusters::Response &res);
 };
 
+	/*
+	 * Constructor for the PerceptionServer class.
+	 * Advertises the GetClusters service
+	 */
   PerceptionServer::PerceptionServer(ros::NodeHandle& n_) : n(n_)
   {
     // Advertise Service
@@ -78,6 +102,14 @@ class PerceptionServer
     objectID = 0;
   }
 
+	/*
+	 * Process a single point cloud.
+	 * This will include
+	 *   - Centroid calculation
+	 *   - Volume calculation
+	 *
+	 * The result is a list of PerceivedObject's, which will be put into the buffer perceivedObjects.
+	 */
   void PerceptionServer::process_cloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in)
   {
     //point cloud objects
@@ -130,54 +162,56 @@ class PerceptionServer
     extract.setIndices(inliers);
     extract.filter(*cloud_plane);
 
-    // Remove the plane from the rest of the point cloud
+		// Use cluster extraction to get rid of the outliers of the segmented table
+		pcl::search::KdTree<pcl::PointXYZRGB>::Ptr treeTable (new pcl::search::KdTree<pcl::PointXYZRGB>);
+		treeTable->setInputCloud (cloud_plane);  
+		std::vector<pcl::PointIndices> table_cluster_indices;
+		pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ecTable;
+		ecTable.setClusterTolerance (0.02); // 2cm
+		ecTable.setMinClusterSize (10000);
+		ecTable.setMaxClusterSize (200000);
+		ecTable.setSearchMethod (treeTable);
+		ecTable.setInputCloud (cloud_plane);
+		ecTable.extract (table_cluster_indices);
+
+		// Extract the biggest cluster (e.g. the table) in the plane cloud
+		std::vector<pcl::PointIndices>::const_iterator it = table_cluster_indices.begin ();
+		pcl::PointCloud<pcl::PointXYZRGB>::Ptr plane_cluster (new pcl::PointCloud<pcl::PointXYZRGB>);
+		for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); pit++)
+			plane_cluster->points.push_back (cloud_plane->points[*pit]); //*
+		plane_cluster->width = plane_cluster->points.size ();
+		plane_cluster->height = 1;
+		plane_cluster->is_dense = true;
+
+		std::cout << "Table point cloud " << plane_cluster->points.size () << " data points." << std::endl;
+    
+		// Remove the plane from the rest of the point cloud
     extract.setNegative(true);
     extract.filter(*cloud_clusters);
 
-    // Create a ConvexHull for the table plane
-    // Project the model inliers
-    pcl::ProjectInliers<pcl::PointXYZRGB> proj;
-    proj.setModelType (pcl::SACMODEL_PLANE);
-    proj.setIndices (inliers);
-    proj.setInputCloud (cloud_filtered);
-    proj.setModelCoefficients (coefficients);
-    proj.filter (*cloud_projected);
-
-    // Create a Concave Hull representation of the projected inliers
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_hull (new pcl::PointCloud<pcl::PointXYZRGB>);
-    pcl::ConvexHull<pcl::PointXYZRGB> chull;
-    chull.setInputCloud (cloud_projected);
-    chull.reconstruct (*cloud_hull);
-
     // Use ExtractPolygonalPrism to get all the point clouds above the plane in a given range
-    
     double z_min = 0., z_max = 0.50; // we want the points above the plane, no farther than 50 cm from the surface
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr hull_points (new pcl::PointCloud<pcl::PointXYZRGB> ());
     pcl::ConvexHull<pcl::PointXYZRGB> hull;
     pcl::PointIndices::Ptr object_indices (new pcl::PointIndices);
 
-    // hull.setDimension (2); // not necessarily needed, but we need to check the dimensionality of the output
-    hull.setInputCloud (cloud_plane);
+    hull.setDimension (2); 
+    hull.setInputCloud (plane_cluster);
     hull.reconstruct (*hull_points);
-    if (hull.getDimension () == 2)
-    {
-      pcl::ExtractPolygonalPrismData<pcl::PointXYZRGB> prism;
-      prism.setInputCloud (cloud_clusters);
-      prism.setInputPlanarHull (hull_points);
-      prism.setHeightLimits (z_min, z_max);
-      prism.segment (*object_indices);
+      
+		pcl::ExtractPolygonalPrismData<pcl::PointXYZRGB> prism;
+		prism.setInputCloud (cloud_clusters);
+		prism.setInputPlanarHull (hull_points);
+		prism.setHeightLimits (z_min, z_max);
+		prism.segment (*object_indices);
 
-      // Create the filtering object
-      pcl::ExtractIndices<pcl::PointXYZRGB> extractObjects;
-      // Extract the inliers of the prism
-      extract.setInputCloud (cloud_clusters);
-      extract.setIndices (object_indices);
-      extract.setNegative (false);
-      extract.filter (*object_clusters);
-    }
-    else
-     ROS_ERROR ("The input cloud does not represent a planar surface.\n");
-
+		// Create the filtering object
+		pcl::ExtractIndices<pcl::PointXYZRGB> extractObjects;
+		// Extract the inliers of the prism
+		extract.setInputCloud (cloud_clusters);
+		extract.setIndices (object_indices);
+		extract.setNegative (false);
+		extract.filter (*object_clusters);
 
     // cluster extraction
 
@@ -196,8 +230,7 @@ class PerceptionServer
     pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec;
     ec.setClusterTolerance (0.03); // 2cm
     ec.setMinClusterSize (100);
-    // ec.setMaxClusterSize (25000);
-    ec.setMaxClusterSize (4000); // avoid the stuff in the back
+    ec.setMaxClusterSize (25000);
     ec.setSearchMethod (tree);
     ec.setInputCloud (cluster_cloud_filtered);
     ec.extract (cluster_indices);
@@ -252,6 +285,9 @@ class PerceptionServer
     mutex.unlock();
   }
 
+	/*
+	 * Receive callback for the /camera/depth_registered/points subscription
+	 */
   void PerceptionServer::receive_cloud(const sensor_msgs::PointCloud2ConstPtr& inputCloud)
   {
 
@@ -263,16 +299,23 @@ class PerceptionServer
       process_cloud(cloud_in);
       processing = false;
 
-      ROS_INFO("Wrote a new point cloud: size = %d",cloud_in->points.size());
+      ROS_INFO("Received a new point cloud: size = %d",cloud_in->points.size());
 		}
   }
 
+	/*
+	 * Implementation of the GetClusters Service.
+	 *
+	 * This method will subscribe to the /camera/depth_registered/points topic, 
+	 * wait for the processing of a single point cloud, and return the result from
+	 * the calulations as a list of PerceivedObjects.
+	 */
   bool PerceptionServer::getClusters(perception_group_msgs::GetClusters::Request &req,
            perception_group_msgs::GetClusters::Response &res)
   {
 		ros::Subscriber sub;
-    ROS_INFO("Request was ");
-    ROS_INFO(req.s.c_str());
+    // ROS_INFO("Request was ");
+    // ROS_INFO(req.s.c_str());
     processing = true;
 
     // Subscribe to the depth information topic
@@ -285,7 +328,7 @@ class PerceptionServer
 			ros::spinOnce();
 			r.sleep();
 		}
-      // boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+    ROS_INFO("Cloud process. Lock buffer and return the results");
 
     mutex.lock();
     res.perceivedObjs = perceivedObjects;
