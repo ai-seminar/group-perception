@@ -238,6 +238,7 @@ class PerceptionServer
     // temporary list of perceived objects
     std::vector<perception_group_msgs::PerceivedObject> tmpPerceivedObjects;
 
+		// Iterate over the extracted clusters and write them as a PerceivedObjects to the result list
     int j = 0;
     for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it)
     {
@@ -260,7 +261,6 @@ class PerceptionServer
       // Centroid calulcation
       Eigen::Vector4f centroid;
       pcl::compute3DCentroid (*hull_points, centroid);  
-      std::cout << "The centroid vector is: " << centroid[0] << ","<<centroid[1]<<"," << centroid[2] <<","<< centroid[3] <<std::endl;
 
       // Add the detected cluster to the list of perceived objects
       perception_group_msgs::PerceivedObject percObj;
@@ -279,7 +279,8 @@ class PerceptionServer
     }
 		// Sort by volume
 		std::sort(tmpPerceivedObjects.begin(), tmpPerceivedObjects.end(), ReceivedObjectGreaterThan);
-    
+   
+		// Lock the buffer access to assign the recently perceived objects
     mutex.lock();
     perceivedObjects=tmpPerceivedObjects;
     mutex.unlock();
@@ -291,7 +292,7 @@ class PerceptionServer
   void PerceptionServer::receive_cloud(const sensor_msgs::PointCloud2ConstPtr& inputCloud)
   {
 
-		// process only once
+		// process only one cloud
 		if(processing){
       pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in (new pcl::PointCloud<pcl::PointXYZRGB>());
       pcl::fromROSMsg(*inputCloud,*cloud_in);
@@ -314,8 +315,6 @@ class PerceptionServer
            perception_group_msgs::GetClusters::Response &res)
   {
 		ros::Subscriber sub;
-    // ROS_INFO("Request was ");
-    // ROS_INFO(req.s.c_str());
     processing = true;
 
     // Subscribe to the depth information topic
@@ -328,7 +327,7 @@ class PerceptionServer
 			ros::spinOnce();
 			r.sleep();
 		}
-    ROS_INFO("Cloud process. Lock buffer and return the results");
+    ROS_INFO("Cloud processed. Lock buffer and return the results");
 
     mutex.lock();
     res.perceivedObjs = perceivedObjects;

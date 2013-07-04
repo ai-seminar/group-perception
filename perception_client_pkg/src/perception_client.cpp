@@ -1,3 +1,10 @@
+/**
+ * This class implements the client interface to query
+ * the PerceivedObjects from the PerceptionServer.
+ *
+ * It will execute a service call to "GetClusters" and print
+ * the returned list of PerceivedObjects in a textual form.
+ */
 #include "ros/ros.h"
 #include "perception_group_msgs/AddTwoInts.h"
 #include "perception_group_msgs/GetClusters.h"
@@ -20,9 +27,9 @@ int main(int argc, char **argv)
   {
     if (clusterClient.call(clusterSrv))
     {
-      // ROS_INFO("Sum: %ld", (long int)srv.response.sum);
       ROS_INFO("Cluster Service call successful");
       ROS_INFO("List size: %ld", (long int)clusterSrv.response.perceivedObjs.size() );
+
       // wait a sec if list is empty. service may not be ready yet
       if((long int)clusterSrv.response.perceivedObjs.size() == 0)
       {
@@ -30,7 +37,7 @@ int main(int argc, char **argv)
         ROS_INFO_STREAM("No objects perceived yet.");
         continue;
       }
-      // ROS_INFO("List size: %ld", (long int)clusterSrv.response.perceivedObjs.size() );
+
       for(int i=0; i < clusterSrv.response.perceivedObjs.size(); i++ ) {
         ROS_INFO("ID of perceived object is: %d", clusterSrv.response.perceivedObjs[i].c_id);
         ROS_INFO("Volume of perceived object is: %f", clusterSrv.response.perceivedObjs[i].c_volume);
