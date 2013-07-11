@@ -316,7 +316,6 @@ class PerceptionServer
   {
 		ros::Subscriber sub;
     processing = true;
-    std::string test = req.s;
 
     // signal failed call, if request string does not match
     if (req.s.compare("get") != 0)
