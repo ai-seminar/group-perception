@@ -20,7 +20,7 @@ int main(int argc, char **argv)
 
 	ros::ServiceClient clusterClient = n.serviceClient<perception_group_msgs::GetClusters>("GetClusters");
   perception_group_msgs::GetClusters clusterSrv;
-  clusterSrv.request.s = "foobar";
+  clusterSrv.request.s = "get";
 
   // run until service gets shut down
   while(true)
