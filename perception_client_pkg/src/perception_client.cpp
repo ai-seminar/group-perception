@@ -6,7 +6,6 @@
  * the returned list of PerceivedObjects in a textual form.
  */
 #include "ros/ros.h"
-#include "perception_group_msgs/AddTwoInts.h"
 #include "perception_group_msgs/GetClusters.h"
 #include <cstdlib>
 #include <boost/date_time/posix_time/posix_time.hpp>
